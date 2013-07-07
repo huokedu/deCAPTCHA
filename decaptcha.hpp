@@ -17,7 +17,7 @@
  */
 
 #pragma once
-#include <boost/asio/io_service.hpp>
+#include <boost/asio.hpp>
 #include <boost/function.hpp>
 
 #include "channel_friend_decoder.hpp"
@@ -27,7 +27,7 @@ namespace decaptcha{
 class deCAPTCHA;
 
 template<class ConstBuffer, class Handler >
-class async_decaptcha_op{
+class async_decaptcha_op : boost::asio::coroutine {
 public:
 	async_decaptcha_op(boost::asio::io_service & io_service, deCAPTCHA & decaptcha,
 					const ConstBuffer & buf, Handler handler)
@@ -37,13 +37,10 @@ public:
 		// TODO 使用人肉识别服务
 
 		// 让 XMPP/IRC 的聊友版面
-		
+		io_service.post(boost::asio::detail::bind_handler(*this,boost::system::error_code(), 0, 0));
 	}
 
-	void operator()()
-	{
-
-	}
+	void operator()(boost::system::error_code ec, std::size_t id, std::string result);
 
 private:
 	boost::asio::io_service & m_io_service;
@@ -66,7 +63,7 @@ public:
 	 * 目前实现的解码器是 channel_friend_decoder , 利用其他频道的聊友进行解码.
 	 */
 	template<class DecoderClass>
-	add_decoder(DecoderClass decoder)
+	void add_decoder(DecoderClass decoder)
 	{
 	}
 
@@ -91,5 +88,16 @@ public:
 private:
 	boost::asio::io_service & m_io_service;
 };
+
+template<class ConstBuffer, class Handler >
+void async_decaptcha_op<ConstBuffer, Handler>::operator()(boost::system::error_code ec, std::size_t id, std::string result)
+{
+	BOOST_ASIO_CORO_REENTER(this)
+	{
+		// 遍历所有的 decoder, 一个一个试过.
+
+	}
+}
+
 
 }
