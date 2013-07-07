@@ -47,10 +47,15 @@ private:
 	deCAPTCHA & m_decaptcha;
 	const ConstBuffer & m_buffer;
 	Handler m_handler;
+private:                                                    // value used in coroutine
+	int m_index_decoder;
+
 };
 
 class deCAPTCHA{
-	typedef boost::function<void ()>	decoder_op_t;
+	typedef boost::function<void (boost::system::error_code ec, std::size_t id, std::string result)> decoder_handler;
+	typedef boost::function<void (boost::asio::io_service &, boost::asio::streambuf &buffer, decoder_handler)> decoder_op_t;
+
 public:
 	deCAPTCHA(boost::asio::io_service & io_service)
 		:m_io_service(io_service)
@@ -87,14 +92,26 @@ public:
 	}
 private:
 	boost::asio::io_service & m_io_service;
+	std::vector<decoder_op_t>	m_decoder;
 };
 
 template<class ConstBuffer, class Handler >
 void async_decaptcha_op<ConstBuffer, Handler>::operator()(boost::system::error_code ec, std::size_t id, std::string result)
 {
+	int & i = m_index_decoder;
+
 	BOOST_ASIO_CORO_REENTER(this)
 	{
 		// 遍历所有的 decoder, 一个一个试过.
+		for( i = 0 ; i < m_decaptcha.m_decoder.size(); i ++)
+		{
+			BOOST_ASIO_CORO_YIELD m_decaptcha.m_decoder[i](boost::ref(m_io_service), boost::ref(m_buffer), *this);
+			if (!ec)
+			{
+				m_io_service.post(boost::asio::detail::bind_handler(m_handler, ec, id, result));
+				return;
+			}
+		}
 
 	}
 }
