@@ -18,16 +18,20 @@
 
 #pragma once
 #include <boost/asio/io_service.hpp>
+#include <boost/function.hpp>
+
+#include "channel_friend_decoder.hpp"
 
 namespace decaptcha{
 
-template<class ConstBuffer, class MsgSender, class Handler >
+class deCAPTCHA;
+
+template<class ConstBuffer, class Handler >
 class async_decaptcha_op{
 public:
-	async_decaptcha_op(boost::asio::io_service & io_service, 
-					const ConstBuffer & buf, MsgSender sender,
-					Handler handler)
-		:m_io_service(io_service), m_buffer(buf), m_sender(sender), m_handler(handler)
+	async_decaptcha_op(boost::asio::io_service & io_service, deCAPTCHA & decaptcha,
+					const ConstBuffer & buf, Handler handler)
+		:m_io_service(io_service), m_buffer(buf), m_handler(handler), m_decaptcha(decaptcha)
 	{
 		// TODO 使用机器识别算法
 		// TODO 使用人肉识别服务
@@ -35,14 +39,21 @@ public:
 		// 让 XMPP/IRC 的聊友版面
 		
 	}
+
+	void operator()()
+	{
+
+	}
+
 private:
 	boost::asio::io_service & m_io_service;
+	deCAPTCHA & m_decaptcha;
 	const ConstBuffer & m_buffer;
-	MsgSender m_sender;
-	Handler m_handler;	
+	Handler m_handler;
 };
 
 class deCAPTCHA{
+	typedef boost::function<void ()>	decoder_op_t;
 public:
 	deCAPTCHA(boost::asio::io_service & io_service)
 		:m_io_service(io_service)
@@ -52,9 +63,10 @@ public:
 	/*
 	 * add_decoder 向系统添加验证码解码器.
 	 * 
-	 * 目前实现的解码器是 frientvc , 利用其他频道的聊友进行解码.
+	 * 目前实现的解码器是 channel_friend_decoder , 利用其他频道的聊友进行解码.
 	 */
-	add_decoder()
+	template<class DecoderClass>
+	add_decoder(DecoderClass decoder)
 	{
 	}
 
@@ -70,12 +82,11 @@ public:
 	* 		
 	* }
 	*/
-	template<class ConstBuffer, class MsgSender, class Handler>
-	void async_decaptcha(const ConstBuffer & buf, MsgSender sender,
-						Handler handler)
+	template<class ConstBuffer, class Handler>
+	void async_decaptcha(const ConstBuffer & buf, Handler handler)
 	{
-		async_decaptcha_op<ConstBuffer,MsgSender,Handler>
-							op(m_io_service,buf, sender, handler);
+		async_decaptcha_op<ConstBuffer,Handler>
+							op(m_io_service, *this, buf, handler);
 	}
 private:
 	boost::asio::io_service & m_io_service;
