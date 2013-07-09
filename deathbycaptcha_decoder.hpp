@@ -101,12 +101,8 @@ public:
 			if (ec){
 				m_handler(ec, 0, std::string(""));
 				return;
-			}
-
- 			// 检查 status
- 			if (!read_result())
+			}else if (process_result(ec, bytes_transfered))
 			{
-				m_handler(make_error_code(not_supported), 0, std::string(""));
 				return;
 			}
 
@@ -162,21 +158,6 @@ private:
 	bool should_try(boost::system::error_code ec) const
 	{
 		return (*m_tries) ++ < 20;
-	}
-
-	bool read_result()
-	{
-		try
-		{
-			std::istream is(m_buffers.get());
-			pt::ptree result;
-			js::read_json(is, result);
-			return result.get<bool>("is_correct");
-		}
-		catch(const pt::ptree_error & error)
-		{
-			return false;
-		}
 	}
 
 private:
