@@ -22,11 +22,30 @@
 namespace decaptcha{
 namespace decoder{
 
-class channel_friend_decoder{
+template<class Sender>
+class channel_friend_decoder_t{
+public:
+	channel_friend_decoder_t(boost::asio::io_service & io_service, Sender sender)
+	  : m_io_service(io_service), m_sender(sender)
+	{
+	}
 
+	template <class Handler>
+	void operator()(boost::asio::streambuf &buffer, Handler handler)
+	{
 
+	}
 
+private:
+	boost::asio::io_service & m_io_service;
+	Sender m_sender;
 };
+
+template<class Sender> channel_friend_decoder_t<Sender>
+channel_friend_decoder(boost::asio::io_service & io_service, Sender sender)
+{
+	return channel_friend_decoder_t<Sender>(io_service, sender);
+}
 
 }
 }

@@ -54,7 +54,7 @@ public:
 			for( i = 0 ; i < m_decoder.size(); i ++)
 			{
 				BOOST_ASIO_CORO_YIELD
-					m_decoder[i](boost::ref(m_io_service), boost::ref(m_buffer), *this);
+					m_decoder[i](boost::ref(m_buffer), *this);
 				if (!ec)
 				{
 					m_io_service.post(
@@ -84,7 +84,7 @@ class deCAPTCHA{
 			void (boost::system::error_code ec, std::size_t id, std::string result)
 		> decoder_handler;
 	typedef boost::function<
-			void (boost::asio::io_service &, boost::asio::streambuf &buffer, decoder_handler)
+			void (boost::asio::streambuf &buffer, decoder_handler)
 		> decoder_op_t;
 
 public:
