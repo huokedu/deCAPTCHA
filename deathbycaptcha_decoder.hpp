@@ -94,17 +94,18 @@ public:
 	// 这里是 json 格式的数据
 	void operator()(boost::system::error_code ec, std::size_t bytes_transfered)
 	{
-		if (ec){
-			m_handler(ec, 0, std::string(""));
-			return;
-		}
+		using namespace boost::system::errc;
 
  		BOOST_ASIO_CORO_REENTER(this)
  		{
+			if (ec){
+				m_handler(ec, 0, std::string(""));
+				return;
+			}
+
  			// 检查 status
  			if (!read_result())
 			{
-				using namespace boost::system::errc;
 				m_handler(make_error_code(not_supported), 0, std::string(""));
 				return;
 			}
@@ -115,11 +116,21 @@ public:
 					boost::delayedcallsec(m_io_service, 3, boost::asio::detail::bind_handler(*this, ec, 0) );
 
 				// 获取一下结果
-				BOOST_ASIO_CORO_YIELD async_fetch_result(*this);
+				m_stream = boost::make_shared<avhttp::http_stream>(boost::ref(m_io_service));
+				m_buffers = boost::make_shared<boost::asio::streambuf>();
+
+				m_stream->request_options(
+					avhttp::request_opts()
+						(avhttp::http_options::accept, "application/json")
+				);
+
+				BOOST_ASIO_CORO_YIELD avhttp::async_read_body(*m_stream, *m_location, *m_buffers, *this);
 
 				if (process_result(ec, bytes_transfered))
 					return;
 			}while (should_try(ec));
+
+			m_handler(make_error_code(operation_canceled), 0, std::string(""));
  		}
 	}
 private:
@@ -138,6 +149,7 @@ private:
 					return false;
 				std::size_t  captchaid = result.get<std::size_t>("captcha");
 				m_handler(boost::system::error_code(),captchaid, text);
+				return true;
 			}
 		}
 		catch(const pt::ptree_error & error)
@@ -150,16 +162,6 @@ private:
 	bool should_try(boost::system::error_code ec) const
 	{
 		return *m_tries < 20;
-	}
-
-	template<class THandler>
-	void async_fetch_result(THandler handler)
-	{
-		m_stream = boost::make_shared<avhttp::http_stream>(boost::ref(m_io_service));
-		m_buffers = boost::make_shared<boost::asio::streambuf>();
-
-		avhttp::async_read_body(*m_stream, *m_location, *m_buffers, handler);
-
 	}
 
 	bool read_result()
