@@ -26,6 +26,8 @@ namespace decaptcha{
 
 class deCAPTCHA;
 
+namespace detail{
+
 template<class DecoderOp, class ConstBuffer, class Handler >
 class async_decaptcha_op : boost::asio::coroutine {
 public:
@@ -42,7 +44,27 @@ public:
 			boost::asio::detail::bind_handler(*this,boost::system::error_code(), 0, 0));
 	}
 
-	void operator()(boost::system::error_code ec, std::size_t id, std::string result);
+	void operator()(boost::system::error_code ec, std::size_t id, std::string result)
+	{
+		int & i = m_index_decoder;
+
+		BOOST_ASIO_CORO_REENTER(this)
+		{
+			// 遍历所有的 decoder, 一个一个试过.
+			for( i = 0 ; i < m_decoder.size(); i ++)
+			{
+				BOOST_ASIO_CORO_YIELD
+					m_decoder[i](boost::ref(m_io_service), boost::ref(m_buffer), *this);
+				if (!ec)
+				{
+					m_io_service.post(
+						boost::asio::detail::bind_handler(m_handler, ec, id, result));
+					return;
+				}
+			}
+
+		}
+	}
 
 private:
 	boost::asio::io_service & m_io_service;
@@ -54,6 +76,8 @@ private:                                                    // value used in cor
 	int m_index_decoder;
 
 };
+
+}
 
 class deCAPTCHA{
 	typedef boost::function<
@@ -77,6 +101,7 @@ public:
 	template<class DecoderClass>
 	void add_decoder(DecoderClass decoder)
 	{
+		m_decoder.push_back(decoder);
 	}
 
 	/*
@@ -94,37 +119,13 @@ public:
 	template<class ConstBuffer, class Handler>
 	void async_decaptcha(const ConstBuffer & buf, Handler handler)
 	{
-		async_decaptcha_op<decoder_op_t, ConstBuffer,Handler>
+		detail::async_decaptcha_op<decoder_op_t, ConstBuffer,Handler>
 							op(m_io_service, m_decoder, *this, buf, handler);
 	}
 private:
 	boost::asio::io_service & m_io_service;
 	std::vector<decoder_op_t>	m_decoder;
 };
-
-template<class DecoderOp, class ConstBuffer, class Handler >
-void async_decaptcha_op<DecoderOp, ConstBuffer, Handler>::operator()(
-			boost::system::error_code ec, std::size_t id, std::string result)
-{
-	int & i = m_index_decoder;
-
-	BOOST_ASIO_CORO_REENTER(this)
-	{
-		// 遍历所有的 decoder, 一个一个试过.
-		for( i = 0 ; i < m_decoder.size(); i ++)
-		{
-			BOOST_ASIO_CORO_YIELD
-				m_decoder[i](boost::ref(m_io_service), boost::ref(m_buffer), *this);
-			if (!ec)
-			{
-				m_io_service.post(
-					boost::asio::detail::bind_handler(m_handler, ec, id, result));
-				return;
-			}
-		}
-
-	}
-}
 
 
 }
