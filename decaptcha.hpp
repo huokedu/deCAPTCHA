@@ -32,9 +32,9 @@ template<class DecoderOp, class Handler >
 class async_decaptcha_op : boost::asio::coroutine {
 public:
 	async_decaptcha_op(boost::asio::io_service & io_service, std::vector<DecoderOp>	decoder,
-					deCAPTCHA & decaptcha, const std::string & buf, Handler handler)
+						const std::string & buf, Handler handler)
 		:m_io_service(io_service), m_decoder(decoder), m_buffer(buf),
-		m_handler(handler), m_decaptcha(decaptcha)
+		m_handler(handler)
 	{
 		using namespace boost::asio::detail;
 		// TODO 使用机器识别算法
@@ -70,7 +70,6 @@ public:
 private:
 	boost::asio::io_service & m_io_service;
 	std::vector<DecoderOp>	m_decoder;
-	deCAPTCHA & m_decaptcha;
 	const std::string m_buffer;
 	Handler m_handler;
 private:                                                    // value used in coroutine
@@ -78,6 +77,13 @@ private:                                                    // value used in cor
 
 };
 
+template<class DecoderOp, class Handler > async_decaptcha_op<DecoderOp, Handler>
+	make_async_decaptcha_op(boost::asio::io_service & io_service,
+			const std::vector<DecoderOp> & decoder, const std::string & buf, Handler handler)
+{
+	return detail::async_decaptcha_op<DecoderOp, Handler>(
+				io_service, decoder, buf, handler);
+}
 }
 
 class deCAPTCHA{
@@ -97,7 +103,9 @@ public:
 	/*
 	 * add_decoder 向系统添加验证码解码器.
 	 * 
-	 * 目前实现的解码器是 channel_friend_decoder , 利用其他频道的聊友进行解码.
+	 * 目前实现的解码器是 channel_friend_decoder 和 deathbycaptcha_decoder
+	 * channel_friend_decoder 利用其他频道的聊友进行解码.
+	 * deathbycaptcha_decoder 则是印度阿三开的一家人肉解码服务公司
 	 */
 	template<class DecoderClass>
 	void add_decoder(DecoderClass decoder)
@@ -107,7 +115,6 @@ public:
 
 	/*
 	* async_decaptcha 用于将 buf 表示的一个缓冲区(jpeg数据) 识别为一个文字,
-	* 如果有可能的话, 还需要用到 sender 发送一些数据.
 	* 识别完成后调用 handler 返回识别结果.
 	* 
 	* handler 的签名如下
@@ -120,13 +127,11 @@ public:
 	template<class Handler>
 	void async_decaptcha(const std::string & buf, Handler handler)
 	{
-		detail::async_decaptcha_op<decoder_op_t, Handler>
-							op(m_io_service, m_decoder, *this, buf, handler);
+		detail::make_async_decaptcha_op(m_io_service, m_decoder, buf, handler);
 	}
 private:
 	boost::asio::io_service & m_io_service;
 	std::vector<decoder_op_t>	m_decoder;
 };
-
 
 }
