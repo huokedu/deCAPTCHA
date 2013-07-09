@@ -20,6 +20,7 @@
 #include <string>
 #include <fstream>
 #include <boost/asio.hpp>
+#include <boost/regex.hpp>
 
 namespace decaptcha{
 namespace decoder{
@@ -60,6 +61,7 @@ public:
 	template<class error_code>
 	void operator()(error_code ec, std::string str)
 	{
+		std::string tmp;
 		BOOST_ASIO_CORO_REENTER(this)
 		{
 			while (!ec){
@@ -70,9 +72,33 @@ public:
 					m_handler(ec, 0, str);
 					return;
 				}
+				if ( check_qqbot_vc(str, tmp)){
+					m_handler(ec, 0, tmp);
+					return;
+				}
 			}
 			m_handler(ec, 0, std::string(""));
 		}
+	}
+private:
+	bool check_qqbot_vc(std::string message, std::string & out)
+	{
+		boost::cmatch what;
+		static boost::regex ex(".qqbot vc ([^ ]*)");
+		std::string _vccode;
+
+		if(boost::regex_match(message.c_str(), what, ex))
+		{
+			_vccode = what[1];
+
+			if(_vccode.length() == 4)
+			{
+				out = _vccode;
+				return true;
+			}
+		}
+
+		return false;
 	}
 private:
 	boost::asio::io_service & m_io_service;
