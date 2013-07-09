@@ -17,34 +17,95 @@
  */
 
 #pragma once
-#include <boost/asio/io_service.hpp>
+#include <string>
+#include <fstream>
+#include <boost/asio.hpp>
 
 namespace decaptcha{
 namespace decoder{
 
-template<class Sender>
+namespace detail{
+
+template<class Sender, class AsyncInputer, class Handler>
+class channel_friend_decoder_op : boost::asio::coroutine {
+public:
+	channel_friend_decoder_op(boost::asio::io_service & io_service,
+			Sender sender, AsyncInputer async_inputer,
+			const std::string & buffer, Handler handler)
+		: m_io_service(io_service), m_sender(sender), m_async_inputer(async_inputer), m_handler(handler)
+	{
+		// 保存文件.
+		std::ofstream	img("vercode.jpeg", std::ofstream::openmode(std::ofstream::binary | std::ofstream::out) );
+		img.write(buffer.data(), buffer.length());
+		img.close();
+		// send to xmpp and irc.
+		// 向 频道广播消息.
+	#if !defined(_MSC_VER)
+		m_sender( "请查看qqlog目录下的vercode.jpeg 然后用\".qqbot vc XXX\"输入验证码:" );
+	# else
+		m_sender( "..." );
+	#endif
+
+		// 同时向命令行也广播
+		std::cerr << console_out_str("请查看qqlog目录下的vercode.jpeg 然后输入验证码: ") <<  std::flush ;
+		std::cerr.flush();
+
+		// 等待输入
+
+		m_io_service.post(
+			boost::asio::detail::bind_handler(*this, boost::system::error_code(), std::string())
+		);
+	}
+
+	template<class error_code>
+	void operator()(error_code ec, std::string str)
+	{
+		BOOST_ASIO_CORO_REENTER(this)
+		{
+			while (!ec){
+				BOOST_ASIO_CORO_YIELD m_async_inputer(*this);
+				// 检查 str
+
+				// 是 vc 的话就调用 handler
+				m_handler(ec, 0, str);
+				return;
+			}
+		}
+	}
+private:
+	boost::asio::io_service & m_io_service;
+	Sender m_sender;
+	AsyncInputer m_async_inputer;
+	Handler m_handler;
+};
+
+}
+
+template<class Sender, class AsyncInputer>
 class channel_friend_decoder_t{
 public:
-	channel_friend_decoder_t(boost::asio::io_service & io_service, Sender sender)
-	  : m_io_service(io_service), m_sender(sender)
+	channel_friend_decoder_t(boost::asio::io_service & io_service, Sender sender, AsyncInputer async_inputer)
+	  : m_io_service(io_service), m_sender(sender), m_async_inputer(async_inputer)
 	{
 	}
 
 	template <class Handler>
-	void operator()(boost::asio::streambuf &buffer, Handler handler)
+	void operator()(const std::string &buffer, Handler handler)
 	{
-
+		detail::channel_friend_decoder_op<Sender, AsyncInputer, Handler>
+				op(m_io_service, m_sender, m_async_inputer, buffer, handler);
 	}
 
 private:
 	boost::asio::io_service & m_io_service;
 	Sender m_sender;
+	AsyncInputer m_async_inputer;
 };
 
-template<class Sender> channel_friend_decoder_t<Sender>
-channel_friend_decoder(boost::asio::io_service & io_service, Sender sender)
+template<class Sender, class AsyncInputer> channel_friend_decoder_t<Sender, AsyncInputer>
+channel_friend_decoder(boost::asio::io_service & io_service, Sender sender, AsyncInputer async_inputer)
 {
-	return channel_friend_decoder_t<Sender>(io_service, sender);
+	return channel_friend_decoder_t<Sender, AsyncInputer>(io_service, sender, async_inputer);
 }
 
 }

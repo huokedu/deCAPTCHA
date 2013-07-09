@@ -28,20 +28,22 @@ class deCAPTCHA;
 
 namespace detail{
 
-template<class DecoderOp, class ConstBuffer, class Handler >
+template<class DecoderOp, class Handler >
 class async_decaptcha_op : boost::asio::coroutine {
 public:
 	async_decaptcha_op(boost::asio::io_service & io_service, std::vector<DecoderOp>	decoder,
-					deCAPTCHA & decaptcha, const ConstBuffer & buf, Handler handler)
+					deCAPTCHA & decaptcha, const std::string & buf, Handler handler)
 		:m_io_service(io_service), m_decoder(decoder), m_buffer(buf),
 		m_handler(handler), m_decaptcha(decaptcha)
 	{
+		using namespace boost::asio::detail;
 		// TODO 使用机器识别算法
 		// TODO 使用人肉识别服务
 
 		// 让 XMPP/IRC 的聊友版面
-		io_service.post(
-			boost::asio::detail::bind_handler(*this,boost::system::error_code(), 0, 0));
+		m_io_service.post(
+			bind_handler(*this, boost::system::error_code(), 0, std::string())
+		);
 	}
 
 	void operator()(boost::system::error_code ec, std::size_t id, std::string result)
@@ -53,8 +55,7 @@ public:
 			// 遍历所有的 decoder, 一个一个试过.
 			for( i = 0 ; i < m_decoder.size(); i ++)
 			{
-				BOOST_ASIO_CORO_YIELD
-					m_decoder[i](boost::ref(m_buffer), *this);
+				BOOST_ASIO_CORO_YIELD m_decoder[i](m_buffer, *this);
 				if (!ec)
 				{
 					m_io_service.post(
@@ -70,7 +71,7 @@ private:
 	boost::asio::io_service & m_io_service;
 	std::vector<DecoderOp>	m_decoder;
 	deCAPTCHA & m_decaptcha;
-	const ConstBuffer & m_buffer;
+	const std::string m_buffer;
 	Handler m_handler;
 private:                                                    // value used in coroutine
 	int m_index_decoder;
@@ -84,7 +85,7 @@ class deCAPTCHA{
 			void (boost::system::error_code ec, std::size_t id, std::string result)
 		> decoder_handler;
 	typedef boost::function<
-			void (boost::asio::streambuf &buffer, decoder_handler)
+			void (const std::string & buffer, decoder_handler)
 		> decoder_op_t;
 
 public:
@@ -116,10 +117,10 @@ public:
 	* 		
 	* }
 	*/
-	template<class ConstBuffer, class Handler>
-	void async_decaptcha(const ConstBuffer & buf, Handler handler)
+	template<class Handler>
+	void async_decaptcha(const std::string & buf, Handler handler)
 	{
-		detail::async_decaptcha_op<decoder_op_t, ConstBuffer,Handler>
+		detail::async_decaptcha_op<decoder_op_t, Handler>
 							op(m_io_service, m_decoder, *this, buf, handler);
 	}
 private:
