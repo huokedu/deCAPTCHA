@@ -161,7 +161,7 @@ private:
 	// 神码叫应该继续呢?  就是返回没错误, 也没有超过 1min
 	bool should_try(boost::system::error_code ec) const
 	{
-		return *m_tries < 20;
+		return (*m_tries) ++ < 20;
 	}
 
 	bool read_result()
