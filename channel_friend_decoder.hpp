@@ -65,11 +65,13 @@ public:
 			while (!ec){
 				BOOST_ASIO_CORO_YIELD m_async_inputer(*this);
 				// 检查 str
-
-				// 是 vc 的话就调用 handler
-				m_handler(ec, 0, str);
-				return;
+				if (str.length() == 4 ){
+					// 是 vc 的话就调用 handler
+					m_handler(ec, 0, str);
+					return;
+				}
 			}
+			m_handler(ec, 0, std::string(""));
 		}
 	}
 private:
