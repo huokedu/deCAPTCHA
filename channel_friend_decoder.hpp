@@ -35,10 +35,6 @@ public:
 			const std::string & buffer, Handler handler)
 		: m_io_service(io_service), m_sender(sender), m_async_inputer(async_inputer), m_handler(handler)
 	{
-		// 保存文件.
-		std::ofstream	img("vercode.jpeg", std::ofstream::openmode(std::ofstream::binary | std::ofstream::out) );
-		img.write(buffer.data(), buffer.length());
-		img.close();
 		// send to xmpp and irc.
 		// 向 频道广播消息.
 	#if !defined(_MSC_VER)
