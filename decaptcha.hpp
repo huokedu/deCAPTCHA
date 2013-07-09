@@ -26,24 +26,27 @@ namespace decaptcha{
 
 class deCAPTCHA;
 
-template<class ConstBuffer, class Handler >
+template<class DecoderOp, class ConstBuffer, class Handler >
 class async_decaptcha_op : boost::asio::coroutine {
 public:
-	async_decaptcha_op(boost::asio::io_service & io_service, deCAPTCHA & decaptcha,
-					const ConstBuffer & buf, Handler handler)
-		:m_io_service(io_service), m_buffer(buf), m_handler(handler), m_decaptcha(decaptcha)
+	async_decaptcha_op(boost::asio::io_service & io_service, std::vector<DecoderOp>	decoder,
+					deCAPTCHA & decaptcha, const ConstBuffer & buf, Handler handler)
+		:m_io_service(io_service), m_decoder(decoder), m_buffer(buf),
+		m_handler(handler), m_decaptcha(decaptcha)
 	{
 		// TODO 使用机器识别算法
 		// TODO 使用人肉识别服务
 
 		// 让 XMPP/IRC 的聊友版面
-		io_service.post(boost::asio::detail::bind_handler(*this,boost::system::error_code(), 0, 0));
+		io_service.post(
+			boost::asio::detail::bind_handler(*this,boost::system::error_code(), 0, 0));
 	}
 
 	void operator()(boost::system::error_code ec, std::size_t id, std::string result);
 
 private:
 	boost::asio::io_service & m_io_service;
+	std::vector<DecoderOp>	m_decoder;
 	deCAPTCHA & m_decaptcha;
 	const ConstBuffer & m_buffer;
 	Handler m_handler;
@@ -53,8 +56,12 @@ private:                                                    // value used in cor
 };
 
 class deCAPTCHA{
-	typedef boost::function<void (boost::system::error_code ec, std::size_t id, std::string result)> decoder_handler;
-	typedef boost::function<void (boost::asio::io_service &, boost::asio::streambuf &buffer, decoder_handler)> decoder_op_t;
+	typedef boost::function<
+			void (boost::system::error_code ec, std::size_t id, std::string result)
+		> decoder_handler;
+	typedef boost::function<
+			void (boost::asio::io_service &, boost::asio::streambuf &buffer, decoder_handler)
+		> decoder_op_t;
 
 public:
 	deCAPTCHA(boost::asio::io_service & io_service)
@@ -87,28 +94,31 @@ public:
 	template<class ConstBuffer, class Handler>
 	void async_decaptcha(const ConstBuffer & buf, Handler handler)
 	{
-		async_decaptcha_op<ConstBuffer,Handler>
-							op(m_io_service, *this, buf, handler);
+		async_decaptcha_op<decoder_op_t, ConstBuffer,Handler>
+							op(m_io_service, m_decoder, *this, buf, handler);
 	}
 private:
 	boost::asio::io_service & m_io_service;
 	std::vector<decoder_op_t>	m_decoder;
 };
 
-template<class ConstBuffer, class Handler >
-void async_decaptcha_op<ConstBuffer, Handler>::operator()(boost::system::error_code ec, std::size_t id, std::string result)
+template<class DecoderOp, class ConstBuffer, class Handler >
+void async_decaptcha_op<DecoderOp, ConstBuffer, Handler>::operator()(
+			boost::system::error_code ec, std::size_t id, std::string result)
 {
 	int & i = m_index_decoder;
 
 	BOOST_ASIO_CORO_REENTER(this)
 	{
 		// 遍历所有的 decoder, 一个一个试过.
-		for( i = 0 ; i < m_decaptcha.m_decoder.size(); i ++)
+		for( i = 0 ; i < m_decoder.size(); i ++)
 		{
-			BOOST_ASIO_CORO_YIELD m_decaptcha.m_decoder[i](boost::ref(m_io_service), boost::ref(m_buffer), *this);
+			BOOST_ASIO_CORO_YIELD
+				m_decoder[i](boost::ref(m_io_service), boost::ref(m_buffer), *this);
 			if (!ec)
 			{
-				m_io_service.post(boost::asio::detail::bind_handler(m_handler, ec, id, result));
+				m_io_service.post(
+					boost::asio::detail::bind_handler(m_handler, ec, id, result));
 				return;
 			}
 		}
