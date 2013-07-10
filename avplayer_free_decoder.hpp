@@ -62,6 +62,10 @@ public:
 
 			l = htonl(m_vercodebuf.length());
 			buffer_copy(m_buffers->prepare(4), buffer(&l, 4));
+			m_buffers->commit(4);
+
+			BOOST_ASIO_CORO_YIELD
+				async_write(*m_socket, *m_buffers, transfer_exactly(4), *this);
 
 			m_buffers->consume(bytes_transfered);
 
