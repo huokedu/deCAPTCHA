@@ -246,6 +246,12 @@ public:
 				op(m_io_service, m_key, m_host, buffer, handler);
 	}
 
+	// 调用这个报告 ID 对应的验证码错误.
+	template <class Handler>
+	void operator()(std::size_t ID, Handler handler)
+	{
+		// TODO
+	}
 private:
 	boost::asio::io_service & m_io_service;
 	std::string m_key, m_host;
