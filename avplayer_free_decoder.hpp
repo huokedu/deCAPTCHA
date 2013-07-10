@@ -76,7 +76,7 @@ public:
 				async_write(*m_socket, *m_buffers, transfer_all(), *this);
 
 			BOOST_ASIO_CORO_YIELD
-				async_read(*m_socket, *m_buffers, transfer_all(), *this);
+				async_read(*m_socket, *m_buffers, transfer_exactly(4), *this);
 
 			// 获取
 			strbuf.resize(bytes_transfered);
