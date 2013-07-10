@@ -20,8 +20,6 @@
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
 
-#include "channel_friend_decoder.hpp"
-
 namespace decaptcha{
 
 class deCAPTCHA;
