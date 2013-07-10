@@ -106,11 +106,16 @@ public:
 				return;
 			}
 
+			// 延时 8s 然后重试.
+			BOOST_ASIO_CORO_YIELD
+					boost::delayedcallsec(m_io_service, 8, boost::asio::detail::bind_handler(*this, ec, 0) );
+
 			do{
 				// 延时 3s 然后重试.
 				BOOST_ASIO_CORO_YIELD
 					boost::delayedcallsec(m_io_service, 3, boost::asio::detail::bind_handler(*this, ec, 0) );
 
+				// 这样第一次就总共延时了 11s,  正好是平均解码时间.
 				// 获取一下结果
 				m_stream = boost::make_shared<avhttp::http_stream>(boost::ref(m_io_service));
 				m_buffers = boost::make_shared<boost::asio::streambuf>();
