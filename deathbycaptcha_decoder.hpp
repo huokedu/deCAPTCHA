@@ -84,7 +84,7 @@ public:
 			*m_location = m_stream->location();
 
 			// 继续读取,
-			boost::asio::async_read(*m_stream, *m_buffers, avhttp::detail::read_all(m_stream->content_length()), *this);
+			boost::asio::async_read(*m_stream, *m_buffers, avhttp::transfer_response_body(m_stream->content_length()), *this);
 
 		}else{
 			m_handler(ec, 0, std::string(""));
