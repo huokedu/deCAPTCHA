@@ -121,10 +121,47 @@ class error_category_impl
 	}
 };
 
+struct report_bad_func : boost::asio::coroutine
+{
+	report_bad_func(boost::asio::io_service & io_service,
+				std::string key, std::string host,
+				boost::shared_ptr<std::string> CAPTCHA_ID)
+	  : m_io_service(io_service), m_CAPTCHA_ID(CAPTCHA_ID),
+ 		m_key(key), m_host(host)
+	{
+	}
+
+	// 调用这个开始报告错误.
+	void operator()()
+	{
+		m_stream = boost::make_shared<avhttp::http_stream>(boost::ref(m_io_service));
+		m_buffers = boost::make_shared<boost::asio::streambuf>();
+
+		// 汇报汇报.
+		// "http://antigate.com/res.php?key=XXX&action=reportbad&id=CAPCHA_ID_HERE"
+		std::string url =  boost::str(boost::format("%s/res.php?key=%s&action=reportbad&id=%s")
+			% m_host % m_key % *m_CAPTCHA_ID );
+
+		avhttp::async_read_body(*m_stream, url, *m_buffers, *this);
+	}
+
+	void operator()(boost::system::error_code ec, std::size_t bytes_transfered)
+	{
+
+	}
+
+private:
+	boost::asio::io_service & m_io_service;
+	const std::string m_key, m_host;
+	boost::shared_ptr<std::string> m_CAPTCHA_ID;
+
+	boost::shared_ptr<avhttp::http_stream> m_stream;
+	boost::shared_ptr<boost::asio::streambuf> m_buffers;
+};
 
 template<class Handler>
-class antigate_decoder_op : boost::asio::coroutine {
-
+class antigate_decoder_op : boost::asio::coroutine
+{
 	std::string generate_boundary() const
 	{
 		boost::rand48 p(time(NULL));
@@ -235,7 +272,7 @@ private:
 						boost::system::error_code(),
 						boost::lexical_cast<std::size_t>(*m_CAPTCHA_ID),
 						result_CAPTCHA,
-						boost::function<void()>()
+						report_bad_func(m_io_service, m_key, m_host, m_CAPTCHA_ID)
 					)
 				);
 			return true;
