@@ -87,7 +87,11 @@ public:
 			boost::asio::async_read(*m_stream, *m_buffers, avhttp::transfer_response_body(m_stream->content_length()), *this);
 
 		}else{
-			m_handler(ec, 0, std::string(""));
+			m_io_service.post(
+				boost::asio::detail::bind_handler(
+					m_handler, ec, 0, std::string(""), boost::function<void()>()
+				)
+			);
 		}
 	}
 
@@ -98,8 +102,13 @@ public:
 
  		BOOST_ASIO_CORO_REENTER(this)
  		{
-			if (ec){
-				m_handler(ec, 0, std::string(""));
+			if(ec)
+			{
+				m_io_service.post(
+					boost::asio::detail::bind_handler(
+						m_handler, ec, 0, std::string(""), boost::function<void()>()
+					)
+				);
 				return;
 			}else if (process_result(ec, bytes_transfered))
 			{
@@ -131,7 +140,11 @@ public:
 					return;
 			}while (should_try(ec));
 
-			m_handler(make_error_code(operation_canceled), 0, std::string(""));
+			m_io_service.post(
+				boost::asio::detail::bind_handler(
+					m_handler, make_error_code(operation_canceled), 0, std::string(""), boost::function<void()>()
+				)
+			);
  		}
 	}
 private:
@@ -149,7 +162,12 @@ private:
 				if (text.empty())
 					return false;
 				std::size_t  captchaid = result.get<std::size_t>("captcha");
-				m_handler(boost::system::error_code(),captchaid, text);
+				m_io_service.post(
+					boost::asio::detail::bind_handler(
+						m_handler, boost::system::error_code(), captchaid, text, boost::function<void()>()
+					)
+				);
+
 				return true;
 			}
 		}

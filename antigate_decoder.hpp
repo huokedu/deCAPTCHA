@@ -167,7 +167,12 @@ public:
  		{
 			if (!process_upload_result(ec, bytes_transfered))
 			{
-				m_handler(ec, 0, std::string(""));
+				m_io_service.post(
+					boost::asio::detail::bind_handler(
+						m_handler, ec, 0, std::string(""), boost::function<void()>()
+					)
+				);
+
 				return;
 			}
 
@@ -195,7 +200,11 @@ public:
 					return;
 			}while (should_try(ec));
 
-			m_handler(make_error_code(operation_canceled), 0, std::string(""));
+			m_io_service.post(
+				boost::asio::detail::bind_handler(
+					m_handler, make_error_code(operation_canceled), 0, std::string(""), boost::function<void()>()
+				)
+			);
  		}
 	}
 private:
@@ -225,7 +234,8 @@ private:
 						m_handler,
 						boost::system::error_code(),
 						boost::lexical_cast<std::size_t>(*m_CAPTCHA_ID),
-						result_CAPTCHA
+						result_CAPTCHA,
+						boost::function<void()>()
 					)
 				);
 			return true;

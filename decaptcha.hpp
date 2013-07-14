@@ -40,11 +40,12 @@ public:
 
 		// 让 XMPP/IRC 的聊友版面
 		m_io_service.post(
-			bind_handler(*this, boost::system::error_code(), 0, std::string())
+			bind_handler(*this, boost::system::error_code(), 0, std::string(), boost::function<void()>())
 		);
 	}
 
-	void operator()(boost::system::error_code ec, std::size_t id, std::string result)
+	template<class Functor>
+	void operator()(boost::system::error_code ec, std::size_t id, std::string result, Functor reportbad = boost::function<void()>() )
 	{
 		int & i = m_index_decoder;
 
@@ -57,7 +58,7 @@ public:
 				if (!ec)
 				{
 					m_io_service.post(
-						boost::asio::detail::bind_handler(m_handler, ec, id, result));
+						boost::asio::detail::bind_handler(m_handler, ec, id, result, reportbad));
 					return;
 				}
 			}
@@ -82,11 +83,13 @@ template<class DecoderOp, class Handler > async_decaptcha_op<DecoderOp, Handler>
 	return detail::async_decaptcha_op<DecoderOp, Handler>(
 				io_service, decoder, buf, handler);
 }
+
 }
 
 class deCAPTCHA{
+	typedef boost::function<void()>	reportbadfunc_t;
 	typedef boost::function<
-			void (boost::system::error_code ec, std::size_t id, std::string result)
+			void (boost::system::error_code ec, std::size_t id, std::string result, reportbadfunc_t)
 		> decoder_handler;
 	typedef boost::function<
 			void (const std::string & buffer, decoder_handler)
@@ -121,12 +124,22 @@ public:
 	* {
 	* 		
 	* }
+	* 其实 handler 应该还有第四个参数,  接收一个 回调函数, 调用这个函数报告识别错误.
+	* 完整类型如下
+	*
+	* void decaptcha_handler(boost::system::error_code ec, std::size_t id, std::string result, report_bad_func func)
+	* {
+	*
+	* }
+	*
 	*/
 	template<class Handler>
 	void async_decaptcha(const std::string & buf, Handler handler)
 	{
 		detail::make_async_decaptcha_op(m_io_service, m_decoder, buf, handler);
 	}
+
+
 private:
 	boost::asio::io_service & m_io_service;
 	std::vector<decoder_op_t>	m_decoder;

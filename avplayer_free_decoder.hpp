@@ -48,7 +48,11 @@ public:
 		using namespace boost::system::errc;
 		using namespace boost::asio;
 		if (ec){
-			m_handler(ec, 0, std::string());
+			m_io_service.post(
+				boost::asio::detail::bind_handler(
+					m_handler, ec, 0, std::string(""), boost::function<void()>()
+				)
+			);
 			return;
 		}
 
@@ -84,7 +88,14 @@ public:
 
 			if (strbuf.empty())
 				ec = make_error_code(bad_message);
-			m_handler(ec, 0, strbuf);
+			else
+				ec = boost::system::error_code();
+
+			m_io_service.post(
+				boost::asio::detail::bind_handler(
+					m_handler, ec, 0, strbuf, boost::function<void()>()
+				)
+			);
  		}
 	}
 

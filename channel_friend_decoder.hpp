@@ -63,17 +63,32 @@ public:
 			while (!ec){
 				BOOST_ASIO_CORO_YIELD m_async_inputer(*this);
 				// 检查 str
-				if (str.length() == 4 ){
+				if(str.length() == 4)
+				{
 					// 是 vc 的话就调用 handler
-					m_handler(ec, 0, str);
+					m_io_service.post(
+						boost::asio::detail::bind_handler(
+							m_handler, ec, 0, str, boost::function<void()>()
+						)
+					);
 					return;
 				}
+
 				if ( check_qqbot_vc(str, tmp)){
-					m_handler(ec, 0, tmp);
+					m_io_service.post(
+						boost::asio::detail::bind_handler(
+							m_handler, ec, 0, tmp, boost::function<void()>()
+						)
+					);
 					return;
 				}
 			}
-			m_handler(ec, 0, std::string(""));
+
+			m_io_service.post(
+				boost::asio::detail::bind_handler(
+					m_handler, ec, 0, std::string(), boost::function<void()>()
+				)
+			);
 		}
 	}
 private:
