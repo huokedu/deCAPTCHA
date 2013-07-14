@@ -37,7 +37,90 @@ namespace js = boost::property_tree::json_parser;
 
 namespace decaptcha{
 namespace decoder{
+
+namespace detail {
+	class error_category_impl;
+}
+
+template<class error_category>
+const boost::system::error_category& error_category_single()
+{
+	static error_category error_category_instance;
+	return reinterpret_cast<const boost::system::error_category&>(error_category_instance);
+}
+
+inline const boost::system::error_category& error_category()
+{
+	return error_category_single<detail::error_category_impl>();
+}
+
+namespace error{
+enum errc_t{
+	ERROR_CAPCHA_NOT_READY,
+	ERROR_WRONG_USER_KEY,
+	ERROR_KEY_DOES_NOT_EXIST,
+	ERROR_NO_SLOT_AVAILABLE,
+	ERROR_ZERO_CAPTCHA_FILESIZE,
+	ERROR_TOO_BIG_CAPTCHA_FILESIZE,
+	ERROR_ZERO_BALANCE,
+	ERROR_IP_NOT_ALLOWED,
+	ERROR_CAPTCHA_UNSOLVABLE,
+	ERROR_BAD_DUPLICATES,
+	ERROR_NO_SUCH_METHOD,
+	ERROR_IMAGE_TYPE_NOT_SUPPORTED,
+};
+
+inline boost::system::error_code make_error_code(errc_t e)
+{
+	return boost::system::error_code(static_cast<int>(e), error_category());
+}
+
+}
+
 namespace detail{
+
+class error_category_impl
+  : public boost::system::error_category
+{
+	virtual const char* name() const
+	{
+		return "antigate API";
+	}
+
+	virtual std::string message(int e) const
+	{
+		switch (e)
+		{
+		case error::ERROR_CAPCHA_NOT_READY:
+			return "captcha is not recognized yet, repeat request withing 1-5 seconds";
+		case error::ERROR_WRONG_USER_KEY:
+			return "user authorization key is invalid (its length is not 32 bytes as it should be)";
+		case error::ERROR_KEY_DOES_NOT_EXIST:
+			return "you have set wrong user authorization key in request";
+		case error::ERROR_NO_SLOT_AVAILABLE:
+			return "no idle captcha workers are available at the moment, please try a bit later or try increasing your bid";
+		case error::ERROR_ZERO_CAPTCHA_FILESIZE:
+			return "the size of the captcha you are uploading is zero";
+		case error::ERROR_TOO_BIG_CAPTCHA_FILESIZE:
+			return "your captcha size is exceeding 100kb limit";
+		case error::ERROR_ZERO_BALANCE:
+			return "account has zero or negative balance";
+		case error::ERROR_IP_NOT_ALLOWED:
+			return "Request with current account key is not allowed from your IP. Please refer to IP list section";
+		case error::ERROR_CAPTCHA_UNSOLVABLE:
+			return "Could not solve captcha in 6 attempts by different workers";
+		case error::ERROR_BAD_DUPLICATES:
+			return "100% recognition feature failed due to attempts limit";
+		case error::ERROR_NO_SUCH_METHOD:
+			return "You must send method parameter in your API request, please refer to the API documentation";
+		case error::ERROR_IMAGE_TYPE_NOT_SUPPORTED:
+			return "Could not determine captcha file type, only allowed formats are JPG, GIF, PNG";
+		default:
+			return "antigate ERROR";
+		}
+	}
+};
+
 
 template<class Handler>
 class antigate_decoder_op : boost::asio::coroutine {
@@ -126,6 +209,7 @@ private:
 		m_buffers->sgetn(&result[0], bytes_transfered);
 		if ( result == "CAPCHA_NOT_READY")
 		{
+			ec = error::CAPCHA_NOT_READY;
 			return false;
 		}
 
@@ -167,6 +251,14 @@ private:
 		{
 			* m_CAPTCHA_ID = what[1];
 			return true;
+		}
+
+		ex.set_expression("ERROR_NO_SLOT_AVAILABLE");
+
+		if (boost::regex_search(result.c_str(), what, ex))
+		{
+			// TODO
+			// 这个有办法,  增加 bid !
 		}
 
 		ec = make_error_code(operation_not_supported);
@@ -259,3 +351,15 @@ private:
 
 }
 }
+
+namespace boost {
+namespace system {
+
+template <>
+struct is_error_code_enum<decaptcha::decoder::error::errc_t>
+{
+  static const bool value = true;
+};
+
+} // namespace system
+} // namespace boost
