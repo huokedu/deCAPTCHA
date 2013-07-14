@@ -62,7 +62,9 @@ public:
 					return;
 				}
 			}
-
+			m_io_service.post(
+				boost::asio::detail::bind_handler(m_handler, ec, id, result, reportbad));
+			return;
 		}
 	}
 
