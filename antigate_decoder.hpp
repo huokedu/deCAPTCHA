@@ -209,7 +209,7 @@ private:
 		m_buffers->sgetn(&result[0], bytes_transfered);
 		if ( result == "CAPCHA_NOT_READY")
 		{
-			ec = error::CAPCHA_NOT_READY;
+			ec = error::ERROR_CAPCHA_NOT_READY;
 			return false;
 		}
 
@@ -259,6 +259,8 @@ private:
 		{
 			// TODO
 			// 这个有办法,  增加 bid !
+			ec = error::ERROR_NO_SLOT_AVAILABLE;
+			return false;
 		}
 
 		ec = make_error_code(operation_not_supported);
