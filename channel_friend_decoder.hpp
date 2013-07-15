@@ -27,6 +27,13 @@ namespace decoder{
 
 namespace detail{
 
+inline bool is_vc(std::string str)
+{
+	boost::cmatch what;
+	boost::regex ex("[a-z0-9A-Z][a-z0-9A-Z][a-z0-9A-Z][a-z0-9A-Z]");
+	return boost::regex_match(str.c_str(), what, ex);
+}
+
 template<class Sender, class AsyncInputer, class Handler>
 class channel_friend_decoder_op : boost::asio::coroutine {
 public:
@@ -63,7 +70,7 @@ public:
 			while (!ec){
 				BOOST_ASIO_CORO_YIELD m_async_inputer(*this);
 				// 检查 str
-				if(str.length() == 4)
+				if(str.length() == 4 && is_vc(str))
 				{
 					// 是 vc 的话就调用 handler
 					m_io_service.post(
