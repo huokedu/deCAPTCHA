@@ -139,9 +139,9 @@ class error_category_impl
 	}
 };
 
-struct report_bad_func : boost::asio::coroutine
+struct report_bad_op : boost::asio::coroutine
 {
-	report_bad_func(boost::asio::io_service & io_service,
+	report_bad_op(boost::asio::io_service & io_service,
 				std::string key, std::string host,
 				boost::shared_ptr<std::string> CAPTCHA_ID)
 	  : m_io_service(io_service), m_CAPTCHA_ID(CAPTCHA_ID),
@@ -157,7 +157,7 @@ struct report_bad_func : boost::asio::coroutine
 
 		// 汇报汇报.
 		// "http://antigate.com/res.php?key=XXX&action=reportbad&id=CAPCHA_ID_HERE"
-		std::string url =  boost::str(boost::format("%s/res.php?key=%s&action=reportbad&id=%s")
+		std::string url =  boost::str(boost::format("%sres.php?key=%s&action=reportbad&id=%s")
 			% m_host % m_key % *m_CAPTCHA_ID );
 
 		avhttp::async_read_body(*m_stream, url, *m_buffers, *this);
@@ -176,6 +176,29 @@ private:
 	boost::shared_ptr<avhttp::http_stream> m_stream;
 	boost::shared_ptr<boost::asio::streambuf> m_buffers;
 };
+
+inline report_bad_op report_bad_func(boost::asio::io_service & io_service,
+				std::string key, std::string host,
+				boost::shared_ptr<std::string> CAPTCHA_ID)
+{
+	return report_bad_op(io_service, key, host, CAPTCHA_ID);
+}
+
+inline boost::system::error_code process_error_result(std::string result)
+{
+	boost::cmatch what;
+	boost::regex ex;
+
+	ex.set_expression("ERROR_NO_SLOT_AVAILABLE");
+
+	if (boost::regex_search(result.c_str(), what, ex))
+	{
+		// TODO
+		// 这个有办法,  增加 bid !
+		return error::ERROR_NO_SLOT_AVAILABLE;
+	}
+	return error::ERROR_CAPTCHA_UNSOLVABLE;
+}
 
 template<class Handler>
 class antigate_decoder_op : boost::asio::coroutine
@@ -295,7 +318,7 @@ private:
 				);
 			return true;
 		}
-		ec = make_error_code(operation_not_supported);
+		ec = process_error_result(result);
 		stop_tries = true;
 		return false;
 	}
@@ -318,17 +341,7 @@ private:
 			return true;
 		}
 
-		ex.set_expression("ERROR_NO_SLOT_AVAILABLE");
-
-		if (boost::regex_search(result.c_str(), what, ex))
-		{
-			// TODO
-			// 这个有办法,  增加 bid !
-			ec = error::ERROR_NO_SLOT_AVAILABLE;
-			return false;
-		}
-
-		ec = make_error_code(operation_not_supported);
+		ec = process_error_result(result);
 		stop_tries = true;
 		return false;
 	}
