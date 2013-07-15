@@ -75,7 +75,25 @@ inline boost::system::error_code make_error_code(errc_t e)
 	return boost::system::error_code(static_cast<int>(e), error_category());
 }
 
-}
+} // namespace error
+
+} // namespace decoder
+} // namespace decaptcha
+
+namespace boost {
+namespace system {
+
+template <>
+struct is_error_code_enum<decaptcha::decoder::error::errc_t>
+{
+  static const bool value = true;
+};
+
+} // namespace system
+} // namespace boost
+
+namespace decaptcha{
+namespace decoder{
 
 namespace detail{
 
@@ -401,14 +419,3 @@ private:
 }
 }
 
-namespace boost {
-namespace system {
-
-template <>
-struct is_error_code_enum<decaptcha::decoder::error::errc_t>
-{
-  static const bool value = true;
-};
-
-} // namespace system
-} // namespace boost
