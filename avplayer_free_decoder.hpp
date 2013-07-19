@@ -50,7 +50,7 @@ public:
 		if (ec){
 			m_io_service.post(
 				boost::asio::detail::bind_handler(
-					m_handler, ec, 0, std::string(""), boost::function<void()>()
+					m_handler, ec, std::string("avplayer 免费验证码解码服务"), std::string(""), boost::function<void()>()
 				)
 			);
 			return;
@@ -93,7 +93,7 @@ public:
 
 			m_io_service.post(
 				boost::asio::detail::bind_handler(
-					m_handler, ec, 0, strbuf, boost::function<void()>()
+					m_handler, ec, std::string("avplayer 免费验证码解码服务"), strbuf, boost::function<void()>()
 				)
 			);
  		}

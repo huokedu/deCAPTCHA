@@ -40,12 +40,12 @@ public:
 
 		// 让 XMPP/IRC 的聊友版面
 		m_io_service.post(
-			bind_handler(*this, boost::system::error_code(), 0, std::string(), boost::function<void()>())
+			bind_handler(*this, boost::system::error_code(), std::string("deCAPTCHA"), std::string(), boost::function<void()>())
 		);
 	}
 
 	template<class Functor>
-	void operator()(boost::system::error_code ec, std::size_t id, std::string result, Functor reportbad = boost::function<void()>() )
+	void operator()(boost::system::error_code ec, std::string provider, std::string result, Functor reportbad = boost::function<void()>() )
 	{
 		int & i = m_index_decoder;
 
@@ -58,12 +58,12 @@ public:
 				if (!ec)
 				{
 					m_io_service.post(
-						boost::asio::detail::bind_handler(m_handler, ec, id, result, reportbad));
+						boost::asio::detail::bind_handler(m_handler, ec, provider, result, reportbad));
 					return;
 				}
 			}
 			m_io_service.post(
-				boost::asio::detail::bind_handler(m_handler, ec, id, result, reportbad));
+				boost::asio::detail::bind_handler(m_handler, ec, std::string("deCAPTCHA"), result, reportbad));
 			return;
 		}
 	}
@@ -91,7 +91,7 @@ template<class DecoderOp, class Handler > async_decaptcha_op<DecoderOp, Handler>
 class deCAPTCHA{
 	typedef boost::function<void()>	reportbadfunc_t;
 	typedef boost::function<
-			void (boost::system::error_code ec, std::size_t id, std::string result, reportbadfunc_t)
+			void (boost::system::error_code ec, std::string provider, std::string result, reportbadfunc_t)
 		> decoder_handler;
 	typedef boost::function<
 			void (const std::string & buffer, decoder_handler)

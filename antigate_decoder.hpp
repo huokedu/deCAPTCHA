@@ -203,6 +203,7 @@ inline boost::system::error_code process_error_result(std::string result)
 template<class Handler>
 class antigate_decoder_op : boost::asio::coroutine
 {
+	const std::string provider;
 	std::string generate_boundary() const
 	{
 		boost::rand48 p(time(NULL));
@@ -218,7 +219,7 @@ public:
 		  m_stream(boost::make_shared<avhttp::http_stream>(boost::ref(m_io_service))),
 		  m_CAPTCHA_ID(boost::make_shared<std::string>()),
 		  m_buffers(boost::make_shared<boost::asio::streambuf>()),
-		  m_tries(0), stop_tries(false)
+		  m_tries(0), stop_tries(false), provider("antigate")
 	{
 		std::string boundary = generate_boundary();
  		std::string content = build_multipart_formdata(buffer, boundary);
@@ -247,7 +248,7 @@ public:
 			{
 				m_io_service.post(
 					boost::asio::detail::bind_handler(
-						m_handler, ec, 0, std::string(""), boost::function<void()>()
+						m_handler, ec, provider , std::string(""), boost::function<void()>()
 					)
 				);
 
@@ -280,7 +281,7 @@ public:
 
 			m_io_service.post(
 				boost::asio::detail::bind_handler(
-					m_handler, make_error_code(operation_canceled), 0, std::string(""), boost::function<void()>()
+					m_handler, make_error_code(operation_canceled), provider, std::string(""), boost::function<void()>()
 				)
 			);
  		}
@@ -311,7 +312,7 @@ private:
 					bind_handler(
 						m_handler,
 						boost::system::error_code(),
-						boost::lexical_cast<std::size_t>(*m_CAPTCHA_ID),
+						provider,
 						result_CAPTCHA,
 						report_bad_func(m_io_service, m_key, m_host, m_CAPTCHA_ID)
 					)

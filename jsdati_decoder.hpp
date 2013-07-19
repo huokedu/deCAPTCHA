@@ -234,7 +234,7 @@ public:
 			{
 				m_io_service.post(
 					boost::asio::detail::bind_handler(
-						m_handler, ec, 0, std::string(""), boost::function<void()>()
+						m_handler, ec, std::string("联众打码平台"), std::string(""), boost::function<void()>()
 					)
 				);
 
@@ -273,7 +273,7 @@ public:
 
 			m_io_service.post(
 				boost::asio::detail::bind_handler(
-					m_handler, make_error_code(operation_canceled), 0, std::string(""), boost::function<void()>()
+					m_handler, make_error_code(operation_canceled), std::string("联众打码平台"), std::string(""), boost::function<void()>()
 				)
 			);
  		}

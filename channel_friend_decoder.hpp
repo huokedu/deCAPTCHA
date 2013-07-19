@@ -75,7 +75,7 @@ public:
 					// 是 vc 的话就调用 handler
 					m_io_service.post(
 						boost::asio::detail::bind_handler(
-							m_handler, ec, 0, str, boost::function<void()>()
+							m_handler, ec, std::string("IRC/XMPP 好友辅助验证码解码器"), str, boost::function<void()>()
 						)
 					);
 					return;
@@ -84,7 +84,7 @@ public:
 				if ( check_qqbot_vc(str, tmp)){
 					m_io_service.post(
 						boost::asio::detail::bind_handler(
-							m_handler, ec, 0, tmp, boost::function<void()>()
+							m_handler, ec, std::string("IRC/XMPP 好友辅助验证码解码器"), tmp, boost::function<void()>()
 						)
 					);
 					return;
@@ -93,7 +93,7 @@ public:
 
 			m_io_service.post(
 				boost::asio::detail::bind_handler(
-					m_handler, ec, 0, std::string(), boost::function<void()>()
+					m_handler, ec, std::string("IRC/XMPP 好友辅助验证码解码器"), std::string(), boost::function<void()>()
 				)
 			);
 		}

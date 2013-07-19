@@ -46,6 +46,7 @@ inline std::string generate_boundary()
 
 template<class Handler>
 class deathbycaptcha_decoder_op : boost::asio::coroutine {
+	const std::string provider;
 public:
 	deathbycaptcha_decoder_op(boost::asio::io_service & io_service,
 			std::string username, std::string password,
@@ -56,7 +57,7 @@ public:
 		  m_stream(boost::make_shared<avhttp::http_stream>(boost::ref(m_io_service))),
 		  m_location(boost::make_shared<std::string>()),
 		  m_buffers(boost::make_shared<boost::asio::streambuf>()),
-		  m_tries(boost::make_shared<int>(0))
+		  m_tries(boost::make_shared<int>(0)), provider("deathbycaptcha 阿三解码服务")
 	{
 		std::string boundary = generate_boundary();
  		std::string content = build_multipart_formdata(buffer, boundary);
@@ -89,7 +90,7 @@ public:
 		}else{
 			m_io_service.post(
 				boost::asio::detail::bind_handler(
-					m_handler, ec, 0, std::string(""), boost::function<void()>()
+					m_handler, ec, provider, std::string(""), boost::function<void()>()
 				)
 			);
 		}
@@ -106,7 +107,7 @@ public:
 			{
 				m_io_service.post(
 					boost::asio::detail::bind_handler(
-						m_handler, ec, 0, std::string(""), boost::function<void()>()
+						m_handler, ec, provider, std::string(""), boost::function<void()>()
 					)
 				);
 				return;
@@ -142,7 +143,7 @@ public:
 
 			m_io_service.post(
 				boost::asio::detail::bind_handler(
-					m_handler, make_error_code(operation_canceled), 0, std::string(""), boost::function<void()>()
+					m_handler, make_error_code(operation_canceled), provider, std::string(""), boost::function<void()>()
 				)
 			);
  		}
@@ -161,10 +162,10 @@ private:
 				std::string text = result.get<std::string>("text");
 				if (text.empty())
 					return false;
-				std::size_t  captchaid = result.get<std::size_t>("captcha");
+// 				std::size_t  captchaid = result.get<std::size_t>("captcha");
 				m_io_service.post(
 					boost::asio::detail::bind_handler(
-						m_handler, boost::system::error_code(), captchaid, text, boost::function<void()>()
+						m_handler, boost::system::error_code(), provider, text, boost::function<void()>()
 					)
 				);
 
