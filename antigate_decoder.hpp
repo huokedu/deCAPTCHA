@@ -37,7 +37,7 @@ namespace js = boost::property_tree::json_parser;
 
 namespace decaptcha{
 namespace decoder{
-
+namespace antigate{
 namespace detail {
 	class error_category_impl;
 }
@@ -56,7 +56,7 @@ inline const boost::system::error_category& error_category()
 
 namespace error{
 enum errc_t{
-	ERROR_CAPCHA_NOT_READY,
+	ERROR_CAPCHA_NOT_READY = 1,
 	ERROR_WRONG_USER_KEY,
 	ERROR_KEY_DOES_NOT_EXIST,
 	ERROR_NO_SLOT_AVAILABLE,
@@ -76,7 +76,7 @@ inline boost::system::error_code make_error_code(errc_t e)
 }
 
 } // namespace error
-
+} // namespace antigate
 } // namespace decoder
 } // namespace decaptcha
 
@@ -84,7 +84,7 @@ namespace boost {
 namespace system {
 
 template <>
-struct is_error_code_enum<decaptcha::decoder::error::errc_t>
+struct is_error_code_enum<decaptcha::decoder::antigate::error::errc_t>
 {
   static const bool value = true;
 };
@@ -94,7 +94,7 @@ struct is_error_code_enum<decaptcha::decoder::error::errc_t>
 
 namespace decaptcha{
 namespace decoder{
-
+namespace antigate{
 namespace detail{
 
 class error_category_impl
@@ -398,7 +398,8 @@ private:
 	const std::string m_key, m_host;
 };
 
-}
+} // namespace detail
+} // namespace antigate
 
 class antigate_decoder{
 public:
@@ -414,15 +415,8 @@ public:
 	template <class Handler>
 	void operator()(const std::string &buffer, Handler handler)
 	{
-		detail::antigate_decoder_op<Handler>
+		antigate::detail::antigate_decoder_op<Handler>
 				op(m_io_service, m_key, m_host, buffer, handler);
-	}
-
-	// 调用这个报告 ID 对应的验证码错误.
-	template <class Handler>
-	void operator()(std::size_t ID, Handler handler)
-	{
-		// TODO
 	}
 private:
 	boost::asio::io_service & m_io_service;
