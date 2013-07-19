@@ -301,7 +301,7 @@ private:
 						bind_handler(
 							m_handler,
 							boost::system::error_code(),
-							boost::lexical_cast<std::size_t>(*m_CAPTCHA_ID),
+							std::string("联众打码平台"),
 							yzm_value,
 							report_bad_func(m_io_service, m_username, m_passwd, m_CAPTCHA_ID, dmuser_name)
 						)
