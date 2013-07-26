@@ -35,6 +35,10 @@ namespace js = boost::property_tree::json_parser;
 
 #include <boost/timedcall.hpp>
 
+#ifndef BOOST_SYSTEM_NOEXCEPT
+  #define BOOST_SYSTEM_NOEXCEPT BOOST_NOEXCEPT
+#endif
+
 namespace decaptcha{
 namespace decoder{
 namespace antigate{
@@ -100,7 +104,7 @@ namespace detail{
 class error_category_impl
   : public boost::system::error_category
 {
-	virtual const char* name() const
+	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
 	{
 		return "antigate API";
 	}
