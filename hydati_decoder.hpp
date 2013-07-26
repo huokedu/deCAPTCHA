@@ -359,6 +359,10 @@ private:
 					 << m_authkey << "\r\n";
 
 		content_body << "------------------------------" <<  boundary <<  "\r\n"
+					 << "Content-Disposition: form-data; name=\"zz\"" <<  "\r\n\r\n"
+					 << "AboUqITw21cSDCnt" << "\r\n";
+
+		content_body << "------------------------------" <<  boundary <<  "\r\n"
 					 << "Content-Disposition: form-data; name=\"timeout\"" <<  "\r\n\r\n"
 					 << "40" << "\r\n";
 
