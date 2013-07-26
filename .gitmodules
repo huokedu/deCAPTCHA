@@ -1,0 +1,6 @@
+[submodule "avboost"]
+	path = avboost
+	url = git://github.com/avplayer/avboost.git
+[submodule "avhttp"]
+	path = avhttp
+	url = git://github.com/avplayer/avhttp.git
