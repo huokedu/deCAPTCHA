@@ -27,7 +27,7 @@
 #include <boost/lexical_cast.hpp>
 #include <avhttp.hpp>
 #include <avhttp/async_read_body.hpp>
-
+#include <boost/locale/encoding.hpp>
 #include <boost/property_tree/ptree.hpp>
 namespace pt = boost::property_tree;
 #include <boost/property_tree/json_parser.hpp>
@@ -371,7 +371,7 @@ private:
 
 		content_body << "------------------------------" <<  boundary <<  "\r\n"
 					 << "Content-Disposition: form-data; name=\"extra_str\"" <<  "\r\n\r\n"
-					 << "四个字母 不区分大小写" << "\r\n";
+					 << boost::locale::conv::between("四个字母 不区分大小写","GB18030","UTF-8") << "\r\n";
 		content_body << "------------------------------" <<  boundary << "--" << "\r\n";
 		return content_body.str();
 	}
