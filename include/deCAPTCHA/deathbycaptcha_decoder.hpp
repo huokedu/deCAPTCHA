@@ -44,6 +44,51 @@ inline std::string generate_boundary()
 	return  boost::str(boost::format("%06x%06x") % p() %  p()  ).substr(0, 12);
 }
 
+class reportbad_op
+{
+	boost::asio::io_service & m_io_service;
+	const std::string m_username, m_password;
+	const std::string m_id;
+	boost::shared_ptr<avhttp::http_stream> m_stream;
+	boost::shared_ptr<boost::asio::streambuf> m_buffers;
+public:
+	reportbad_op(boost::asio::io_service & io_service, std::string username, std::string password, std::string id)
+	: m_io_service(io_service), m_username(username), m_password(password), m_id(id)
+	{}
+
+	void operator()()
+	{
+		//http://api.dbcapi.me/api/captcha/%CAPTCHA_ID%/report
+		m_stream = boost::make_shared<avhttp::http_stream>(boost::ref(m_io_service));
+		m_buffers = boost::make_shared<boost::asio::streambuf>();
+
+		std::string url = boost::str(boost::format("http://api.dbcapi.me/api/captcha/%s/report") % m_id);
+
+		std::string msg = boost::str(boost::format("username=%s&password=%s\r\n") % m_username % m_password);
+
+		m_stream->request_options(
+			avhttp::request_opts()
+			( avhttp::http_options::request_method, "POST" )
+			( avhttp::http_options::content_type, "application/x-www-form-urlencoded; charset=UTF-8" )
+			( avhttp::http_options::request_body, msg )
+			( avhttp::http_options::content_length, boost::lexical_cast<std::string>( msg.length() ) )
+			( avhttp::http_options::connection, "close" )
+		);
+
+		avhttp::async_read_body(*m_stream, url, *m_buffers, *this);
+	}
+
+	void operator()(boost::system::error_code ec, std::size_t bytes_transfered)
+	{
+
+	}
+};
+
+reportbad_op reportbad_func(boost::asio::io_service & io_service, std::string username, std::string password, std::string id)
+{
+	return reportbad_op(io_service, username, password, id);
+}
+
 template<class Handler>
 class deathbycaptcha_decoder_op : boost::asio::coroutine {
 	const std::string provider;
@@ -162,10 +207,12 @@ private:
 				std::string text = result.get<std::string>("text");
 				if (text.empty())
 					return false;
-// 				std::size_t  captchaid = result.get<std::size_t>("captcha");
+ 				std::string  captchaid = result.get<std::string>("captcha");
 				m_io_service.post(
 					boost::asio::detail::bind_handler(
-						m_handler, boost::system::error_code(), provider, text, boost::function<void()>()
+						m_handler, boost::system::error_code(),
+						provider, text,
+						reportbad_func(m_io_service, m_username, m_password, captchaid)
 					)
 				);
 
