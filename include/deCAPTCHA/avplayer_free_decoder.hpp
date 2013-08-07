@@ -62,7 +62,7 @@ public:
  		BOOST_ASIO_CORO_REENTER(this)
  		{
 			BOOST_ASIO_CORO_YIELD
-				async_write(*m_socket, buffer("3bc49260524f3d1a5e535e8ac785766b\n", 33), transfer_exactly(33), *this);
+				async_write(*m_socket, buffer("c8d1f3b2c5c006cef00a4acdd44ebd32\n", 33), transfer_exactly(33), *this);
 
 			l = htonl(m_vercodebuf.length());
 			buffer_copy(m_buffers->prepare(4), buffer(&l, 4));
