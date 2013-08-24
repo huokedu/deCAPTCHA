@@ -51,7 +51,7 @@ public:
 	#endif
 
 		// 同时向命令行也广播
-		std::cout << console_out_str("请查看qqlog目录下的vercode.jpeg 然后输入验证码: ") <<  std::flush ;
+		std::cout << "请查看qqlog目录下的vercode.jpeg 然后输入验证码: " <<  std::flush ;
 		std::cout.flush();
 
 		// 等待输入
@@ -154,5 +154,5 @@ channel_friend_decoder(boost::asio::io_service & io_service, Sender sender, Asyn
 	return channel_friend_decoder_t<Sender, AsyncInputer>(io_service, sender, async_inputer);
 }
 
-}
-}
+} // namespace decoder
+} // namespace decaptcha
