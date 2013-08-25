@@ -51,8 +51,8 @@ public:
 	#endif
 
 		// 同时向命令行也广播
-		std::cout << "请查看qqlog目录下的vercode.jpeg 然后输入验证码: " <<  std::flush ;
-		std::cout.flush();
+		std::wcerr << L"请查看qqlog目录下的vercode.jpeg 然后输入验证码: " <<  std::flush ;
+		std::wcerr.flush();
 
 		// 等待输入
 
