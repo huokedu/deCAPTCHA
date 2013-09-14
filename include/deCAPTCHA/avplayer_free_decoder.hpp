@@ -22,7 +22,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/asio.hpp>
 
-#include <avproxy.hpp>
+#include <boost/avproxy.hpp>
 
 namespace decaptcha{
 namespace decoder{
