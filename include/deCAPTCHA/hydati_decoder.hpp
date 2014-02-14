@@ -412,7 +412,7 @@ public:
 	void operator()(const std::string &buffer, Handler handler)
 	{
 		hydati::detail::hydati_decoder_op<Handler>
-				op(m_io_service, m_authkey, "1000",buffer, handler);
+				op(m_io_service, m_authkey, "1002",buffer, handler);
 	}
 private:
 	boost::asio::io_service & m_io_service;
